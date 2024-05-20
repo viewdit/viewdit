@@ -1,18 +1,18 @@
 <template>
-    <div class="navbar navbar-expand-sm bg-body-tertiary p-4">
+    <div class="navbar navbar-expand-sm bg-body-tertiary p-4 sticky-top shadow-lg">
         <div class="col-sm-10 align-middle">
             <div class="row">
-                <div class="col-md-6 col-sm-6">
-                    <RouterLink :to="'/'" class="d-flex align-center" >
+                <div class="col-md-2 col-sm-4">
+                    <RouterLink :to="'/'" class="d-flex align-center">
                         <img width="60px" height="60px" src="../assets/logo.svg"></img>
-                        <h1 class="px-3 my-2 d-inline" style="font-size:40px">vuedit</h1>
+                        <h1 class="px-3 my-2 d-inline logo" style="font-size:40px">vuedit</h1>
                     </RouterLink>
                 </div>
             </div>
         </div>
         <div class="col-sm-2">
             <RouterLink v-if="user && userInfo?.id" class="m-0 mx-4" :to="`/u/${userInfo.id}`">{{ userInfo.id }}</RouterLink>
-            <button class="btn btn-primary" v-if="!user" @click="() => googleSignIn(auth)">Continue with Google</button>
+            <button class="btn btn-primary" v-if="!user" @click="() => googleSignIn(auth)">Sign in with Google</button>
             <button class="btn btn-primary" v-else @click="() => googleSignOut(auth)">Sign out</button>
             <button class="btn m-2" @click="toggleTheme">Theme</button>
         </div>
@@ -27,10 +27,10 @@
 </template>
 
 <script lang="ts" setup>
-import { generateUsername } from '../helpers/username'
+import { generateUsername } from '../helpers/user'
 import { Ref, computed, onMounted, ref } from 'vue'
 import { useFirebaseAuth, useCurrentUser, useDocument, useCollection } from 'vuefire'
-import { googleSignIn, googleSignOut, usersRef, converter, User, db } from '../firebase'
+import { googleSignIn, googleSignOut, usersRef, User, db } from '../firebase'
 
 import AppModal from './AppModal.vue'
 import { CollectionReference, FieldValue, query, doc, setDoc, where, limit } from 'firebase/firestore'
@@ -40,7 +40,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { userData } from '../stores/userData'
 
 const user = useCurrentUser()
-const auth = useFirebaseAuth()!  // nullable if on server-side
+const auth = useFirebaseAuth()!  // null if server-side
 
 const usernameModal = computed(() => user.value ? new Modal('#usernameModal') : null)
 
@@ -61,7 +61,7 @@ const userInfo = computed(() => {
         const user = userQuery.value[0]!
 
         userData.id = user.id
-        userData.uid = user.uid
+        userData.uid = user.uid!
         return user
     }
 
@@ -90,12 +90,14 @@ const registerUserInfo = async () => {
     }
 }
 
-const dark = ref<boolean>(false)
+const darkTheme = ref<boolean>(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+
+onMounted(() => document.querySelector('html')!.setAttribute('data-bs-theme', darkTheme.value ? 'dark' : ''))
 
 const toggleTheme = () => {
     const root = document.querySelector('html')!
-    dark.value = !dark.value
-    root.setAttribute('data-bs-theme', dark.value ? 'dark' : '')
+    darkTheme.value = !darkTheme.value
+    root.setAttribute('data-bs-theme', darkTheme.value ? 'dark' : '')
 }
 
-</script>
+</script>../helpers/user

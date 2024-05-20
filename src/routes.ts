@@ -1,5 +1,5 @@
 import Vue from 'vue'
-import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 
 export type RouteName = 
     | 'home'
@@ -26,11 +26,13 @@ const routes: Route[] = [
         name: 'subview',
         path: '/v/:subview',
         component: () => import('./pages/Subview.vue'),
-    },
-    {
-        name: 'post',
-        path: '/post/:post',
-        component: () => import('./pages/Post.vue')
+        children: [
+            {
+                name: 'post',
+                path: ':post',
+                component: () => import('./pages/Post.vue')
+            }
+        ]
     },
     {
         name: 'user',

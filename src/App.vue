@@ -1,9 +1,9 @@
 <template>
     <AppTopNav />
-    <div class="container-lg h-100 m-auto">
+    <div class="container-lg h-100 pb-4">
         <RouterView />
     </div>
-    <AppFooter />
+
 </template>
 
 <script setup lang="ts">

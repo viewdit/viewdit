@@ -1,58 +1,85 @@
 <template>
     <Loading v-if="loading"></Loading>
-    <AppTile v-else-if="post">
-        <RouterLink v-if="post.subview" :to="`/v/${post.subview}`" class="d-block">{{ `/v/${post.subview}` }}</RouterLink>
-        <RouterLink :to="`/u/${post.author}`">{{ post.author }}</RouterLink> &#x2022; {{ getElapsedDescription(post.created.seconds * 1000) }}
-        <h2>{{ post.title }}</h2>
-        <p v-if="post.content">{{ post.content }}</p>
-    </AppTile>
+    <PostTile v-else-if="post"
+        :postId="post.id"
+        :subview="`${post.subview}`"
+        :title="`${post.title}`"
+        :date="timestampToDate(post.created)!"
+        :author="`${post.author}`"
+        :body="`${post.content}`"
+        :score="post.score || 0"
+        :vote="user && userData.id ? getUserVote(post.up || [], post.down || [], userData.id) : null"
+    >
+        <button v-if="user" @click="() => openCommentForm(null)" class="btn btn-primary mx-2">Comment</button>
+        <button v-if="user && post.author === userData.id" class="btn btn-secondary mx-2">Edit</button>
+        <button v-if="user && post.author === userData.id" class="btn btn-danger mx-2">Delete</button>
+    </PostTile>
     <AppTile v-else>
         <h1>Post not found</h1>
     </AppTile>
-    <AppTile v-if="!loading">
-        <Comment v-if="comments.length" v-for="c in comments"
-            :key="c.id"
+    <AppTile v-if="!loading && post && nestedComments" v-for="c in nestedComments">
+        <Comment @reply="(id: string) => openCommentForm(id)"
+            :id="c.id"
             :author="c.author"
-            :date="c.created"
-            :body="c.content"
-            :comments="[]"
+            :isPoster="c.isPoster"
+            :date="c.date"
+            :body="c.body"
+            :comments="c.comments || []"
+            :score="c.score"
+            :vote="user ? c.vote : null"
         />
-        <div v-else>
-            <p>Be the first to comment</p>
-        </div>
     </AppTile>
+    <AppModal id="commentModal" :title="commentFormTitle">
+        <form @submit.prevent="createComment" novalidate>
+            <div class="form-group">
+                <label for="commentBody">Comment</label>
+                <textarea v-model="commentBody" class="form-control" id="commentBody" name="commentBody" placeholder="What do you think?"></textarea>
+                <small v-if="commentBodyError" class="form-text text-danger">{{ commentBodyError }}</small>
+            </div>
+            <button class="btn btn-primary my-2" type="submit">Continue</button>
+        </form>
+    </AppModal>
 </template>
 
 <script lang="ts" setup>
 import AppTile from '../components/AppTile.vue';
+import AppModal from '../components/AppModal.vue'
 import PostTile from '../components/PostTile.vue'
-import AppBufferedList from '../components/AppBufferedList.vue';
 import Comment from '../components/Comment.vue'
 import Loading from '../components/Loading.vue';
 
-import { commentsRef, postsRef } from '../firebase';
+import { computed, ref, defineEmits } from 'vue';
+import { commentsRef, postsRef, Comment as CommentType, subviewsRef} from '../firebase';
 import { useRoute } from 'vue-router';
-import { doc, query, where } from 'firebase/firestore';
-import { useCollection, useDocument } from 'vuefire';
-import { computed, ref } from 'vue';
-import { getElapsedDescription } from '../helpers/datetime';
+import { doc, query, setDoc, where, Timestamp, getDoc, updateDoc } from 'firebase/firestore';
+import { useCollection, useCurrentUser, useDocument } from 'vuefire';
+
+import { getElapsedDescription, timestampToDate } from '../helpers/datetime';
+import { userData } from '../stores/userData';
+import { Modal } from 'bootstrap';
+import { router } from '../routes';
+import { getUserVote, setUserVote } from '../helpers/user'
+import { CommentProps } from '../components/Comment.vue';
 
 const route = useRoute()
 
 const loading = ref<boolean>(true)
 
+const user = useCurrentUser()
+
+const commentFormTitle = ref<string>('Write a comment')
+const commentModal = computed(() => user.value ? new Modal('#commentModal') : null)
+
 const postId = computed(() => route.params.post && typeof route.params.post === 'string'
                 ? route.params.post
-                : null
-            )
+                : null)
 
 const {
     data: post,
     promise
 } = useDocument(postId.value
             ? doc(postsRef, postId.value)
-            : null
-)
+            : null)
 
 promise.value.then(() => loading.value = false)
 
@@ -61,6 +88,62 @@ const {
     promise: commentPromise
 } = useCollection(postId.value
             ? query(commentsRef, where('post', '==', postId.value))
-            : null
-)
+            : null)
+
+// transform array comments into tree of comments
+const nestedComments = computed(() => comments.value ? getComments(comments.value) : null)
+
+const getComments = (array: Partial<CommentType>[], parent?: string): CommentProps[] => {
+    const parents: CommentProps[] = array.filter(t => parent ? t.parent === parent : !t.parent).map(c => ({
+        id: c.id,
+        author: c.author,
+        isPoster: c.author === post.value?.author,
+        date: timestampToDate(c.created) || new Date(),
+        body: c.content,
+        score: c.score || 0,
+        vote: (user && userData.id ? getUserVote(c.up || [], c.down || [], userData.id) : null),
+        comments: getComments(array, c.id)
+    }))
+
+    return parents
+}
+
+const parentCommentId = ref<string | null>(null)
+const commentBody = ref<string>()
+const commentBodyError = ref<string>()
+
+const openCommentForm = (parent: string | null) => {
+    parentCommentId.value = parent
+    commentModal.value?.show()
+}
+
+const createComment = async () => {
+    if (!user.value || !userData.id || !postId.value) return
+
+    if (!commentBody.value || commentBody.value.trim().length === 0) {
+        commentBodyError.value = 'Comment required.'
+        return
+    }
+
+    try {
+        await setDoc(doc(commentsRef), {
+            author: userData.id,
+            created: Timestamp.fromDate(new Date()),
+            post: postId.value,
+            content: commentBody.value,
+            parent: parentCommentId.value
+        })
+        
+        commentModal.value?.hide()
+        //router.push({path: `/v/${postName.value}`})
+    }
+    catch (e) {
+        commentBodyError.value = 'Something went wrong. Please try again later.'
+        console.error(e)
+    }
+    finally {
+        commentBody.value = ''
+        commentBodyError.value = ''
+    }
+}
 </script>

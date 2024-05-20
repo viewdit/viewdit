@@ -11,7 +11,7 @@ export const firebaseApp = initializeApp({
     appId: import.meta.env.VITE_FIREBASE_APP_ID!
 })
 
-const googleAuthProvider = new GoogleAuthProvider()
+export const googleAuthProvider = new GoogleAuthProvider()
 
 export const db = getFirestore(firebaseApp)
 
@@ -24,42 +24,47 @@ export const googleSignOut = (auth: Auth) => {
     signOut(auth)
 }
 
-export const converter = <T extends Document>() => ({
-    toFirestore: (data: PartialWithFieldValue<Omit<T, 'id'>>) => data,
+const converter = <T extends Document>() => ({
+    toFirestore: (data: Partial<Omit<T, 'id'>>) => data,
     fromFirestore: (snap: QueryDocumentSnapshot) => ({ id: snap.id, ...snap.data() } as T)
 })
-
-// collection exports
 
 interface Document {
     id: string
 }
+
+interface Content {
+    author: string,
+    created: Timestamp,
+    content?: string
+}
+
+interface Votable {
+    score: number,
+    up: string[],
+    down: string[]
+}
+
+// collection exports
 
 export interface User extends Document {
     uid: string,
     about: string
 }
 
-interface SiteContent extends Document {
-    author: string,
-    created: Timestamp,
-    content?: string
+export interface Subview extends Document, Content {
+    members: number,
+    subscriptions: string[]
 }
 
-export interface Subview extends Document, SiteContent {
-    
-}
-
-export interface Post extends Document, SiteContent {
+export interface Post extends Document, Content, Votable {
     subview: string,
-    title: string,
-    score: number
+    title: string
 }
 
-export interface Comment extends Document, SiteContent {
+export interface Comment extends Document, Content, Votable {
     post: string,
-    parent?: string,
-    score: number
+    parent?: string | null
 }
 
 export const usersRef = collection(db, 'users').withConverter(converter<User>())

@@ -1,4 +1,4 @@
 <template>
-    <h1>omething went wrong</h1>
+    <h1>Something went wrong</h1>
     <p>Oh no! Anyway...</p>
 </template>

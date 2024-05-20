@@ -1,6 +1,6 @@
 <template>
     <footer>
-        <div class="footer fixed-bottom bg-body-tertiary text-center p-2">
+        <div class="footer fixed-bottom bg-body-tertiary text-center">
             &copy; Vuedit 2024-{{ getCurrentYear() }}
         </div>
     </footer>

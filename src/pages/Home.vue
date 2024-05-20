@@ -1,25 +1,18 @@
 <template>
     <Loading v-if="loading"></Loading>
     <AppTile v-else>
-        <div class="d-flex justify-content-between">
-            <div>
-                <select class="form-select">
-                    <option>Best</option>
-                    <option>New</option>
-                    <option>Top</option>
-                </select>
-            </div>
-            <div v-if="user" class="d-flex">
-                <div class="vr mx-4"></div>
-                <button class="btn btn-primary" @click="subviewModal?.show()">Create Subview</button>
-            </div>
-        </div>
+        <PostSearch>
+            <button class="btn btn-primary flex-grow-1" @click="subviewModal?.show()">Create Subview</button>
+        </PostSearch>
     </AppTile>
     <AppModal v-if="user" id="subviewModal" title="Create Subview">
         <form @submit.prevent="createSubview" novalidate>
-            <label for="subviewName">Subview name<input v-model="subviewName" class="form-control" id="subviewName" name="subviewName" placeholder="Subview name"></label>
-            <small v-if="subviewError" class="form-text text-muted">{{ subviewError }}</small>
-            <button class="btn btn-primary mx-2" type="submit">Continue</button>
+            <div class="form-group">
+                <label for="subviewName">Subview name</label>
+                <input v-model="subviewName" class="form-control" id="subviewName" name="subviewName" placeholder="Subview name">
+                <small v-if="subviewError" class="form-text text-danger">{{ subviewError }}</small>
+            </div>
+            <button class="btn btn-primary mt-2" type="submit">Continue</button>
         </form>
     </AppModal>
     <AppTile v-if="!loading && !posts.length">
@@ -30,26 +23,31 @@
             :postId="p.id"
             :subview="`${p.subview}`"
             :title="`${p.title}`"
-            :date="new Date(p.created.seconds * 1000)"
+            :date="timestampToDate(p.created) || new Date()"
             :author="`${p.author}`"
             :body="`${p.content}`"
+            :score="p.score || 0"
+            :vote="user && userData.id ? getUserVote(p.up || [], p.down || [], userData.id) : null"
     />
-</template>
+</template>userData.id
 
 <script lang="ts" setup>
 import { useCollection, useCurrentUser } from 'vuefire';
 import AppTile from '../components/AppTile.vue'
 import AppModal from '../components/AppModal.vue'
 import PostTile from '../components/PostTile.vue'
-import AppBufferedList from '../components/AppBufferedList.vue'
 import Loading from '../components/Loading.vue'
-import { doc, setDoc, where } from 'firebase/firestore';
+import PostSearch from '../components/PostSearch.vue'
+
+import { doc, getDoc, setDoc, where } from 'firebase/firestore';
 import { Modal } from 'bootstrap';
 import { computed, onMounted, ref } from 'vue';
-import { postsRef, subviewsRef } from '../firebase';
+import { Subview, postsRef, subviewsRef } from '../firebase';
 
+import { getUserVote } from '../helpers/user';
 import { userData } from '../stores/userData';
 import { router } from '../routes';
+import { dateToTimestamp, timestampToDate } from '../helpers/datetime';
 
 const user = useCurrentUser()
 
@@ -63,22 +61,32 @@ const loading = ref<boolean>(true)
 const createSubview = async () => {
     if (!user.value || !userData.id) return
 
-    if (!subviewName.value) {
+    if (!subviewName.value || subviewName.value.trim().length === 0) {
         subviewError.value = 'Subview name required.'
         return
     }
     
     try {
+        const existing = await getDoc(doc(subviewsRef, subviewName.value))
+
+        if (existing.exists()) {
+            subviewError.value = 'Subview name already exists. Choose another name.'
+            return
+        }
+        
         await setDoc(doc(subviewsRef, subviewName.value), {
             author: userData.id,
-            created: new Date()
+            created: dateToTimestamp(new Date())!,
+            subscriptions: [userData.id],
+            members: 1
         })
 
         subviewModal.value?.hide()
         router.push({path: `/v/${subviewName.value}`})
     }
-    catch {
-        subviewError.value = 'Subview name already exists.'
+    catch (e) {
+        console.error(e)
+        subviewError.value = 'Something went wrong. Please try again later.'
     }
 }
 

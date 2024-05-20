@@ -2,7 +2,7 @@
     <AppTile class="d-flex align-center justify-center flex-column">
         <div>
             <h1>404</h1>
-            <p>Wrong page idiot</p>
+            <p>Sorry this page does not exist. <RouterLink :to="'/'">Oh no! Anyway...</RouterLink></p>
         </div>
     </AppTile>
 </template>

@@ -3,9 +3,13 @@
 html, body, #app {
     margin: 0;
     min-height: 100vh;
-    font-family: "Jersey 25", sans-serif;
+    font-family: "Lexend", sans-serif;
     font-weight: 400;
     font-style: normal;
+}
+
+.bg-primary {
+    background-color: #176d17 !important;
 }
 
 .btn-primary, .btn-primary:active, .btn-primary:visited {
@@ -15,6 +19,14 @@ html, body, #app {
     &:hover {
         background-color: #114e11 !important;
     }
+}
+
+html:not([data-bs-theme='dark']) h1.logo {
+    color: #176d17
+}
+
+.small {
+    width: 3rem !important;
 }
 
 a {
