@@ -1,20 +1,19 @@
 <template>
     <div class="navbar navbar-expand-sm bg-body-tertiary p-4 sticky-top shadow-lg">
-        <div class="col-sm-10 align-middle">
-            <div class="row">
-                <div class="col-md-2 col-sm-4">
-                    <RouterLink :to="'/'" class="d-flex align-center">
-                        <img width="60px" height="60px" src="../assets/logo.svg"></img>
-                        <h1 class="px-3 my-2 d-inline logo" style="font-size:40px">vuedit</h1>
-                    </RouterLink>
-                </div>
-            </div>
+        <div class="col-sm-6 col-md-6 col-lg-6">
+            <RouterLink :to="'/'" class="d-flex align-center">
+                <img width="60px" height="60px" src="../assets/logo.svg"></img>
+                <h1 class="px-3 my-2 d-inline logo" style="font-size:40px">vuedit</h1>
+            </RouterLink>
         </div>
-        <div class="col-sm-2">
-            <RouterLink v-if="user && userInfo?.id" class="m-0 mx-4" :to="`/u/${userInfo.id}`">{{ userInfo.id }}</RouterLink>
-            <button class="btn btn-primary" v-if="!user" @click="() => googleSignIn(auth)">Sign in with Google</button>
-            <button class="btn btn-primary" v-else @click="() => googleSignOut(auth)">Sign out</button>
-            <button class="btn m-2" @click="toggleTheme">Theme</button>
+        <div class="col-sm-6 col-md-6 col-lg-6">
+            <div class="float-end">
+                <RouterLink v-if="user && userInfo?.id" class="m-0 mx-4" :to="`/u/${userInfo.id}`">{{ userInfo.id }}</RouterLink>
+                <button class="btn btn-primary" v-if="!user" @click="() => googleSignIn(auth)">Sign in with Google</button>
+                <button class="btn btn-primary" v-else @click="() => googleSignOut(auth)">Sign out</button>
+                <button class="btn m-2" @click="toggleTheme">Theme</button>
+            </div>
+            
         </div>
     </div>
     <AppModal id="usernameModal" title="Choose Username">
@@ -90,14 +89,30 @@ const registerUserInfo = async () => {
     }
 }
 
-const darkTheme = ref<boolean>(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
-
-onMounted(() => document.querySelector('html')!.setAttribute('data-bs-theme', darkTheme.value ? 'dark' : ''))
-
 const toggleTheme = () => {
-    const root = document.querySelector('html')!
     darkTheme.value = !darkTheme.value
-    root.setAttribute('data-bs-theme', darkTheme.value ? 'dark' : '')
+    setTheme(darkTheme.value)
 }
 
-</script>../helpers/user
+const getTheme = () => {
+    const cookieMatch = document.cookie.match(/theme=(dark|light)/i)
+
+    if (cookieMatch)
+        return cookieMatch[1] === 'dark'  // use cookie if exists
+
+    // use browser preference
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+}
+
+const setTheme = (dark: boolean) => {
+    const root = document.querySelector('html')!
+    root.setAttribute('data-bs-theme', darkTheme.value ? 'dark' : '')
+    
+    // set theme preference as sitewide cookie
+    document.cookie = `theme=${dark ? 'dark' : 'light'}; path=/; expires=${new Date(new Date().getTime() + 100000000000).toUTCString()}; SameSite=Strict`
+}
+
+const darkTheme = ref<boolean>(getTheme())
+
+onMounted(() => document.querySelector('html')!.setAttribute('data-bs-theme', darkTheme.value ? 'dark' : ''))
+</script>

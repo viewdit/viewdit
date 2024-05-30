@@ -1,5 +1,5 @@
 <template>
-    <span :class="`p-2 rounded-4 my-2 me-2 ${backColor}`">
+    <span :class="`p-2 rounded-pill my-2 me-2 ${backColor}`">
         <button :class="`bg-transparent border-0 px-2 ${upColor}`" @click="() => $emit('vote', true)">🡅</button>
         <span :class="vote === null ? `text-dark-subtle` : `text-white`">{{ getNumberSummary(score) }}</span>
         <button :class="`bg-transparent border-0 px-2 ${downColor}`" @click="() => $emit('vote', false)">🡇</button>

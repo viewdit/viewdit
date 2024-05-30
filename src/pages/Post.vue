@@ -1,6 +1,5 @@
 <template>
-    <Loading v-if="loading"></Loading>
-    <PostTile v-else-if="post"
+    <PostTile v-if="!postLoading && post"
         :postId="post.id"
         :subview="`${post.subview}`"
         :title="`${post.title}`"
@@ -12,13 +11,14 @@
     >
         <button v-if="user" @click="() => openCommentForm(null)" class="btn btn-primary mx-2">Comment</button>
         <button v-if="user && post.author === userData.id" class="btn btn-secondary mx-2">Edit</button>
-        <button v-if="user && post.author === userData.id" class="btn btn-danger mx-2">Delete</button>
+        <button v-if="user && post.author === userData.id" @click="() => deletePost()" class="btn btn-danger mx-2">Delete</button>
     </PostTile>
-    <AppTile v-else>
+    <AppTile v-else-if="!postLoading && !post">
         <h1>Post not found</h1>
     </AppTile>
-    <AppTile v-if="!loading && post && nestedComments" v-for="c in nestedComments">
-        <Comment @reply="(id: string) => openCommentForm(id)"
+    <Loading v-if="postLoading || commentsLoading" />
+    <AppTile v-if="!commentsLoading && post && nestedComments" v-for="c in nestedComments">
+        <Comment @reply="(id: string) => openCommentForm(id)" @delete="(id: string) => deleteComment(id)"
             :id="c.id"
             :author="c.author"
             :isPoster="c.isPoster"
@@ -51,7 +51,7 @@ import Loading from '../components/Loading.vue';
 import { computed, ref, defineEmits } from 'vue';
 import { commentsRef, postsRef, Comment as CommentType, subviewsRef} from '../firebase';
 import { useRoute } from 'vue-router';
-import { doc, query, setDoc, where, Timestamp, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, query, setDoc, where, Timestamp, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useCollection, useCurrentUser, useDocument } from 'vuefire';
 
 import { getElapsedDescription, timestampToDate } from '../helpers/datetime';
@@ -63,7 +63,8 @@ import { CommentProps } from '../components/Comment.vue';
 
 const route = useRoute()
 
-const loading = ref<boolean>(true)
+const postLoading = ref<boolean>(true)
+const commentsLoading = ref<boolean>(true)
 
 const user = useCurrentUser()
 
@@ -81,7 +82,7 @@ const {
             ? doc(postsRef, postId.value)
             : null)
 
-promise.value.then(() => loading.value = false)
+promise.value.then(() => postLoading.value = false)
 
 const {
     data: comments,
@@ -89,6 +90,8 @@ const {
 } = useCollection(postId.value
             ? query(commentsRef, where('post', '==', postId.value))
             : null)
+
+commentPromise.value.then(() => commentsLoading.value = false)
 
 // transform array comments into tree of comments
 const nestedComments = computed(() => comments.value ? getComments(comments.value) : null)
@@ -144,6 +147,28 @@ const createComment = async () => {
     finally {
         commentBody.value = ''
         commentBodyError.value = ''
+    }
+}
+
+const deletePost = async () => {
+    if (!post.value)
+        return;
+
+    try {
+        await deleteDoc(doc(postsRef, post.value.id))
+        // delete comments?
+    }
+    catch (e) {
+        console.error(e)
+    }
+}
+
+const deleteComment = async (id: string) => {
+    try {
+        await deleteDoc(doc(commentsRef, id))
+    }
+    catch (e) {
+        console.error(e)
     }
 }
 </script>

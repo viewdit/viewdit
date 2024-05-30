@@ -1,14 +1,20 @@
 <template>
         <AppTile>
-            <RouterLink v-if="!subviewUrl && subview" :to="`/v/${subview}`" class="d-block">{{ `v/${props.subview}` }}</RouterLink>
-            <RouterLink :to="`/u/${author}`">{{ author }}</RouterLink> &#x2022; {{ getElapsedDescription(date) }}
-            <RouterLink v-if="!route.params.post" :to="`/v/${subview}/${postId}`">
-                <h2>{{ title }}</h2>
-                <p class="fw-normal">{{ body }}</p>
-            </RouterLink>
+            <div class="row" v-if="!subviewUrl && subview">
+                <RouterLink :to="`/v/${subview}`" class="d-inline-block">{{ `v/${props.subview}` }}</RouterLink>
+            </div>
+            <div class="row">
+                <span><RouterLink :to="`/u/${author}`">{{ author }}</RouterLink> &#x2022; {{ getElapsedDescription(date) }}</span>
+            </div>
+            <div v-if="!route.params.post" class="row">
+                <RouterLink :to="`/v/${subview}/${postId}`">
+                    <h2>{{ title }}</h2>
+                    <div class="fw-normal content" v-html="content"></div>
+                </RouterLink>
+            </div>
             <div v-else>
                 <h2>{{ title }}</h2>
-                <p class="fw-normal">{{ body }}</p>
+                <div class="fw-normal content" v-html="content"></div>
             </div>
             <AppVoteChip @vote="(up: boolean) => vote(up)"
                 :score="props.score || 0"
@@ -23,13 +29,15 @@ import { useRoute } from 'vue-router'
 import { getElapsedDescription } from '../helpers/datetime'
 
 import AppTile from './AppTile.vue'
-import { computed } from 'vue';
+import { Ref, computed, ref } from 'vue';
 import AppVoteChip from './AppVoteChip.vue';
 import { useCurrentUser } from 'vuefire';
 import { postsRef } from '../firebase';
 import { userData } from '../stores/userData';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { setUserVote } from '../helpers/user';
+import DomPurify from 'dompurify';
+import { marked } from 'marked';
 
 const props = defineProps<{
     subview: string,
@@ -44,6 +52,14 @@ const props = defineProps<{
 
 const route = useRoute()
 const user = useCurrentUser()
+
+const markdownToHtml = (markdown: string | null) => {
+    if (!markdown) return ''
+
+    return DomPurify.sanitize(marked.parse(markdown))
+}
+
+const content = computed(() => markdownToHtml(props.body))
 
 const subviewUrl = computed(() => route.params.subview && typeof route.params.subview === 'string'
         ? route.params.subview

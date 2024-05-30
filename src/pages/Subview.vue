@@ -1,16 +1,19 @@
 <template>
-    <Loading v-if="loading"></Loading>
-    <AppTile v-else>
+    <AppTile>
         <div v-if="subview">
             <RouterLink :to="'/v/' + subviewId"><h1 class="d-inline">{{ subviewId }}</h1></RouterLink>
             <span class="mx-2">by <RouterLink :to="'/u/' + subview.author">{{ subview.author }}</RouterLink> &#x2022; {{ formatUnit(subview.members || 0, 'member')}}</span>
             <button v-if="user && !joined" class="btn btn-primary mx-2" @click="() => joinSubview()">Join</button>
             <button v-if="user && joined" class="btn btn-secondary mx-2" @click="() => joinSubview(false)">Leave</button>
-            <PostSearch v-if="!route.params.post" class="pt-4">
-                <button class="btn btn-primary" @click="postModal?.show()">Create Post</button>
+            <PostSearch v-if="!route.params.post" class="pt-2"
+                :pages="getNumPages(posts)"
+                @search="(term: string, sort: SortOptions, filter: FilterOptions) => updateSearch(term, sort, filter)"
+                @setPage="(page: number) => updatePage(page)"
+            >
+                <button class="btn btn-primary w-100" @click="postModal?.show()">Create Post</button>
             </PostSearch>
         </div>
-        <div v-else>
+        <div v-else-if="!loading">
             <h1>No Subview found</h1>
             <p>No subview goes by that name.</p>
         </div>
@@ -31,11 +34,12 @@
         </form>
     </AppModal>
     <RouterView v-if="route.params.post" />
+    <Loading v-else-if="loading"></Loading>
     <AppTile v-else-if="!loading && !posts.length">
         <h1>No Posts</h1>
         <p>No posts found.</p>
     </AppTile>
-    <PostTile v-else v-for="p in posts"
+    <PostTile v-else v-for="p in pagedPosts"
             :post-id="p.id"
             :subview="p.subview"
             :title="`${p.title}`"
@@ -56,7 +60,7 @@ import Loading from '../components/Loading.vue';
 import AppTile from '../components/AppTile.vue';
 import AppModal from '../components/AppModal.vue'
 import PostTile from '../components/PostTile.vue'
-import PostSearch from '../components/PostSearch.vue'
+import PostSearch, { FilterOptions, SortOptions } from '../components/PostSearch.vue'
 
 import { useCollection, useCurrentUser, useDocument } from 'vuefire';
 import { postsRef, subviewsRef, usersRef } from '../firebase';
@@ -64,6 +68,8 @@ import { FieldValue, Timestamp, doc, getDoc, limit, query, setDoc, updateDoc, wh
 import { userData } from '../stores/userData';
 import { Modal } from 'bootstrap';
 import { timestampToDate } from '../helpers/datetime';
+import { getNumPages, getPage, getPostQueryConstraints } from '../helpers/query'
+import { QueryConstraint } from 'firebase/firestore';
 
 const user = useCurrentUser()
 const router = useRouter()
@@ -85,23 +91,25 @@ const subviewId = computed(() => route.params.subview && typeof route.params.sub
 const {
     data: subview,
     promise
-} = useDocument(subviewId.value
-        ? doc(subviewsRef, subviewId.value)
-        : null)
+} = useDocument(subviewId.value ? doc(subviewsRef, subviewId.value) : null)
 
-promise.value.then(() => loading.value = false)
+promise.value.then(() => {loading.value = false; console.log('done')} )
+const constraints = ref<QueryConstraint[]>(getPostQueryConstraints('', 'New', 'Post title only', subviewId.value))
 
 const {
     data: posts,
     promise: postPromise
-} = useCollection(subviewId.value
-        ? query(postsRef, where('subview', '==', subviewId.value))
-        : null)
+} = useCollection(computed(() => query(postsRef, ...constraints.value)))
+
+const updateSearch = (term: string, sort: SortOptions, filter: FilterOptions) => {
+    constraints.value = getPostQueryConstraints(term, sort, filter, subviewId.value)
+    postPromise.value.then(() => console.log('done'))
+    setTimeout(() => console.log(loading.value), 50)
+}
 
 const createPost = async () => {
     if (!user.value || !userData.id || !subviewId.value) return
 
-    
     if (!postName.value || postName.value.trim().length === 0) {
         postNameError.value = 'Post name required.'
         return
@@ -125,7 +133,7 @@ const createPost = async () => {
     }
 }
 
-const joined = computed(() => userData.id && subview?.value?.subscriptions?.indexOf(userData.id) > -1)
+const joined = computed(() => userData.id && subview.value?.subscriptions?.indexOf(userData.id) > -1)
 
 const joinSubview = async (join: boolean = true) => {
     if (!user || !subviewId || !userData.id)
@@ -159,5 +167,13 @@ const joinSubview = async (join: boolean = true) => {
 
     }
 }
+
+const page = ref<number>(1)
+
+const updatePage = (p: number) => {
+    page.value = p
+}
+
+const pagedPosts = computed(() => posts.value ? getPage(posts.value, page.value) : [])
 
 </script>

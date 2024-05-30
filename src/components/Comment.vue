@@ -11,10 +11,13 @@
         />
         <button v-if="user" class="btn btn-primary mx-2" @click="$emit('reply', props.id)">Reply</button>
         <button v-if="user && author === userData.id" class="btn btn-secondary mx-2">Edit</button>
-        <button v-if="user && author === userData.id" class="btn btn-danger mx-2">Delete</button>
+        <button v-if="user && author === userData.id" class="btn btn-danger mx-2" @click="$emit('delete', props.id)">Delete</button>
         <hr v-if="props.comments && props.comments.length > 0" />
         <div v-if="props.comments && props.comments.length > 0" class="ms-4">
-            <Comment v-for="c in props.comments" @reply="(id: string) => $emit('reply', id)"
+            <Comment v-for="c in props.comments"
+                @reply="(id: string) => $emit('reply', id)"
+                @edit="(id: string) => $emit('edit', id)"
+                @delete="(id: string) => $emit('delete', id)"
                 :id="c.id"
                 :author="c.author || null"
                 :is-poster="c.isPoster"

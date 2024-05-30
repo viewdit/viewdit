@@ -36,4 +36,4 @@ export const getElapsedDescription = (utcDateTime: Date) => {
 
 export const dateToTimestamp = (date: Date | null | undefined) => date ? Timestamp.fromDate(date) : null
 
-export const timestampToDate = (timestamp: Timestamp | null | undefined) => timestamp ? new Date(timestamp.seconds * 1000) : null
+export const timestampToDate = (timestamp: Timestamp | null | undefined) => timestamp ? timestamp.toDate() : null
