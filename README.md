@@ -2,7 +2,7 @@
 
 # Vuedit 
 
-**URL: https://vuedit.github.io**
+**URL: https://vuedit.github.io/**
 
 ## Contents
 
@@ -51,7 +51,7 @@ The app is implemented in Vue (in case you couldn't guess) TypeScript, and utili
 
 - All users can:
   - Browse posts on the homepage
-  - Go to a subview and browse it's posts
+  - Go to a subview and browse the posts scoped to that subview
   - Go to a user profile
   - Go to a post and browse comments
   - Search for posts starting with a phrase, on the home page and within a given subview (which is scoped to the subview posts)
@@ -80,6 +80,8 @@ The app is implemented in Vue (in case you couldn't guess) TypeScript, and utili
   - Delete their posts
 
 ### Comments
+
+- All users can view comments on post pages
 
 - Authenticated users can:
   - Comment on posts
