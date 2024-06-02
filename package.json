@@ -8,7 +8,7 @@
     "build": "vite build",
     "start": "vite",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "node deploy.js"
+    "deploy": "vite build && node deploy.js"
   },
   "author": "",
   "license": "ISC",
