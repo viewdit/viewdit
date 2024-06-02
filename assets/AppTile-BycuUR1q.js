@@ -1,0 +1,1 @@
+import{o as c,b as n,K as a}from"./index-B2yev03a.js";const _=(t,e)=>{const o=t.__vccOpts||t;for(const[r,s]of e)o[r]=s;return o},d={},l={class:"bg-body-tertiary mx-2 mt-4 p-4 rounded-4"};function p(t,e){return c(),n("div",l,[a(t.$slots,"default")])}const i=_(d,[["render",p]]);export{i as A,_};
