@@ -3,8 +3,111 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2024, 6, 23);
+    match /users/{username} {
+    	allow read: if true;
+      allow create: if validUser(request.resource.data) && ownsContent();
+    }
+    
+    match /subviews/{id} {
+    	allow read: if true;
+      allow create: if validSubview() && ownsContent();
+      allow update: if validSubview() && sameMetadata();
+    }
+    
+    match /posts/{id} {
+    	allow read: if true;
+      allow create: if ownsContent() && validPost();
+      allow update: if (ownsContent() || sameField('title') && sameField('content')) && validPost() && sameMetadata() && sameField('subview');
+      allow delete: if ownsContent();
+    }
+    
+    match /comments/{id} {
+    	allow read: if true;
+      allow create: if ownsContent() && validComment();
+      allow update: if (ownsContent() || sameField('content')) && validComment() && sameMetadata() && sameField('post') && sameField('parent');
+      allow delete: if ownsContent();
     }
   }
 }
+
+// auth validation
+
+function loggedIn() {
+	return request.auth != null;
+}
+
+function ownsContent() {
+	return loggedIn() && request.auth.uid == request.resource.data.uid;
+}
+
+function validUser(data) {
+  return data.keys().hasOnly(['author', 'uid', 'created', 'content']) &&
+    validContent(data);
+}
+
+// subview validation
+
+function validSubview(data) {
+	return data.keys().hasOnly(['author', 'uid', 'created', 'content', 'members', 'subscriptions']) &&
+    validContent(data) &&
+
+}
+
+// post validation
+
+function validPost(data) {
+	return data.keys().hasOnly([''])  validContent(data) && validVote() && nonEmptyField('')
+}
+
+function samePost(data) {
+	return sameMetadata() && sameField('')
+}
+
+// comment validation
+
+function validComment() {
+	return request.resource.
+  validContent() && validVote() && nonEmptyField('post') && nonEmptyField('content');
+}
+
+// common voting validation (post and comment)
+
+function validVote(data) {
+	return data.keys().hasAll(['score', 'up', 'down']) &&
+    data.score is number &&
+    data.up is list &&
+    data.down is list &&
+    data.score == data.up.length - data.down.length &&
+    (!data.up.hasAny([request.auth.uid]) || !data.down.hasAny([request.auth.uid])) &&
+    data.up.hasAll(resource.data.up.removeAll(request.auth.uid)) &&
+    data.down.hasAll(resource.data.down.removeAll(request.auth.uid))
+
+}
+
+// common content validation (user, subview, post, comment)
+
+function validContent(data) {
+	return data.keys().hasAll(['author', 'uid', 'created'])
+    data.author is string &&
+    data.uid is string &&
+    data.created is timestamp &&
+    data.get('content', '') is string
+}
+
+function sameMetadata() {
+	return sameField('author') && sameField('uid') && sameField('created');
+}
+
+
+function nonEmptyField(key) {
+	return key in request.resource.data && request.resource.data[key].trim();
+}
+
+function sameField(key) {
+  return (key in resource.data)
+    && (key in request.resource.data)
+    && (resource.data[key] == request.resource.data[key]);
+}
+
+
+

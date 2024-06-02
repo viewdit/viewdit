@@ -93,7 +93,7 @@ const {
     promise
 } = useDocument(subviewId.value ? doc(subviewsRef, subviewId.value) : null)
 
-promise.value.then(() => {loading.value = false; console.log('done')} )
+promise.value.then(() => loading.value = false)
 const constraints = ref<QueryConstraint[]>(getPostQueryConstraints('', 'New', 'Post title only', subviewId.value))
 
 const {
@@ -103,8 +103,6 @@ const {
 
 const updateSearch = (term: string, sort: SortOptions, filter: FilterOptions) => {
     constraints.value = getPostQueryConstraints(term, sort, filter, subviewId.value)
-    postPromise.value.then(() => console.log('done'))
-    setTimeout(() => console.log(loading.value), 50)
 }
 
 const createPost = async () => {
@@ -118,6 +116,7 @@ const createPost = async () => {
     try {
         await setDoc(doc(postsRef), {
             author: userData.id,
+            uid: userData.uid,
             created: Timestamp.fromDate(new Date()),
             title: postName.value,
             subview: subviewId.value,
@@ -129,7 +128,7 @@ const createPost = async () => {
     }
     catch (e) {
         console.error(e)
-        postNameError.value = 'Post name already exists.'
+        postNameError.value = 'Something went wrong. Please try again later.'
     }
 }
 

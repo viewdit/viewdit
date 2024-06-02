@@ -1,9 +1,6 @@
-import { collection, query, orderBy, startAfter, limit, getDocs, where, QueryConstraint, DocumentSnapshot } from "firebase/firestore"
+import { collection, query, orderBy, or, startAfter, limit, getDocs, where, QueryConstraint, DocumentSnapshot } from "firebase/firestore"
 import { SortOptions, FilterOptions } from "../components/PostSearch.vue"
-import { useCollection } from "vuefire"
 import { postsRef } from "../firebase"
-
-
 
 const getPrefixSearch = (field: string, term: string) => {
     // this is a bit of a workaround, since Firebase does not offer substring search
@@ -21,7 +18,7 @@ export const getPostQueryConstraints = (term: string, sort: SortOptions, filter:
         if (filter === 'Post title only')
             constraints.push(...getPrefixSearch('title', term))
         if (filter === 'Post body only') {
-            constraints.push(...getPrefixSearch('body', term))
+            constraints.push(...getPrefixSearch('content', term))
         }
     }
 

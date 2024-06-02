@@ -3,29 +3,8 @@
     <AppTile v-else>
         <div v-if="userInfo">
             <div class="row">
-                <div class="col-md-8">
-                    <h1>{{ username }}</h1>
-                    <RouterLink :to="route.path" style="text-decoration: none; color: inherit;" >{{ route.path }}</RouterLink>
-                </div>
-                <div class="col-md-4">
-                    <form v-if="canEdit" @submit.prevent="">
-                        <label>About {{ username }}
-                            <textarea class="form-control w-100">
-
-                            </textarea>
-                        </label>
-                    </form>
-                    <div v-else>
-                        <p>About {{ username }}</p>
-                        <p>{{ userInfo.about }}</p>
-                    </div>
-                    
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-16">
-                    <h2>Activity</h2>
-                </div>
+                <h1>{{ username }}</h1>
+                <RouterLink :to="route.path" style="text-decoration: none; color: inherit;" >{{ route.path }}</RouterLink>
             </div>
         </div>
         <div v-else>

@@ -24,6 +24,8 @@ export const googleSignOut = (auth: Auth) => {
     signOut(auth)
 }
 
+// this will convert firestore data to and from the defined interfaces
+// it will add/remove the id of the document, allowing read acess to it
 const converter = <T extends Document>() => ({
     toFirestore: (data: Partial<Omit<T, 'id'>>) => data,
     fromFirestore: (snap: QueryDocumentSnapshot) => ({ id: snap.id, ...snap.data() } as T)
@@ -35,6 +37,7 @@ interface Document {
 
 interface Content {
     author: string,
+    uid: string,
     created: Timestamp,
     content?: string
 }
@@ -47,9 +50,8 @@ interface Votable {
 
 // collection exports
 
-export interface User extends Document {
-    uid: string,
-    about: string
+export interface User extends Document, Content {
+
 }
 
 export interface Subview extends Document, Content {

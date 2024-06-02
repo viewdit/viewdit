@@ -33,8 +33,7 @@
             :score="p.score || 0"
             :vote="user && userData.id ? getUserVote(p.up || [], p.down || [], userData.id) : null"
     />
-    <Error v-if="postQueryError" />
-</template>userData.id
+</template>
 
 <script lang="ts" setup>
 import { useCollection, useCurrentUser } from 'vuefire';
@@ -43,7 +42,6 @@ import AppModal from '../components/AppModal.vue'
 import PostTile from '../components/PostTile.vue'
 import Loading from '../components/Loading.vue'
 import PostSearch from '../components/PostSearch.vue'
-import Error from '../components/Error.vue'
 
 import { DocumentSnapshot, doc, getDoc, query, setDoc, where } from 'firebase/firestore';
 import { Modal } from 'bootstrap';
@@ -70,9 +68,7 @@ const loading = ref<boolean>(true)
 const constraints = ref<QueryConstraint[]>(getPostQueryConstraints('', 'New', 'Post title only', null))
 
 const updateSearch = (term: string, sort: SortOptions, filter: FilterOptions) => {
-    loading.value = true
     constraints.value = getPostQueryConstraints(term, sort, filter, null)
-    postPromise.value.then(() => {loading.value = false; console.log('test')})
 }
 
 const {
@@ -101,6 +97,7 @@ const createSubview = async () => {
         
         await setDoc(doc(subviewsRef, subviewName.value), {
             author: userData.id,
+            uid: userData.uid,
             created: dateToTimestamp(new Date())!,
             subscriptions: [userData.id],
             members: 1
