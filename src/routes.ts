@@ -1,5 +1,5 @@
 import Vue from 'vue'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
 export type RouteName = 
     | 'home'
@@ -47,6 +47,6 @@ const routes: Route[] = [
 ]
 
 export const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHashHistory(),
     routes
 })
